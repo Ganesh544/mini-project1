@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction - Network  Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-primary">
+                <i class="fas fa-magic me-2"></i>
+                Network Prediction
+            </h2>
+            <span class="badge bg-warning fs-6">
+                Real-time Analysis
+            </span>
+        </div>
+
+        <!-- Model Selection -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    Prediction Settings
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Select Model for Prediction</label>
+                        <select class="form-select" id="modelSelect" name="model_selection">
+                            {% for model in trained_models %}
+                            <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>
+                                {{ model }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Prediction Type</label>
+                        <div class="d-flex gap-3 mt-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="predictionType" 
+                                       id="singlePrediction" value="single" checked>
+                                <label class="form-check-label" for="singlePrediction">
+                                    Single Sample
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="predictionType" 
+                                       id="batchPrediction" value="batch">
+                                <label class="form-check-label" for="batchPrediction">
+                                    Batch Upload
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Single Prediction Form -->
+        <div id="singlePredictionForm" class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-keyboard me-2"></i>
+                    Manual Input Prediction
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('predict') }}" method="post">
+                    <input type="hidden" name="model_selection" id="hiddenModelSelect">
+                    
+                    <div class="row">
+                        {% for feature in feature_names %}
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ feature }}" class="form-label">{{ feature }}</label>
+                            <input type="text" class="form-control" id="{{ feature }}" 
+                                   name="{{ feature }}" 
+                                   value="{{ input_data.get(feature, '') if input_data else '' }}"
+                                   placeholder="Enter {{ feature }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i>
+                            Predict Output
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Batch Prediction Form -->
+        <div id="batchPredictionForm" class="card border-0 shadow-sm mb-4" style="display: none;">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload me-2"></i>
+                    Batch File Prediction
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_test_data') }}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="model_selection" id="hiddenModelSelectBatch">
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="testFile" class="form-label">Upload Test Data CSV</label>
+                            <input type="file" class="form-control" id="testFile" name="file" 
+                                   accept=".csv" required>
+                            <div class="form-text">
+                                Upload a CSV file with the same features as the training data
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-upload me-2"></i>
+                                Upload & Predict
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Prediction Results -->
+        {% if predictions %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Prediction Results - {{ selected_model }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-shield-alt fa-3x text-danger mb-3"></i>
+                                <h4 class="text-danger">Congestion Detection Prediction</h4>
+                                <h2 class="mb-3">{{ predictions.attack_type }}</h2>
+                                {% if predictions.attack_probability %}
+                                <p class="text-muted">
+                                    Confidence: 
+                                    {% for prob in predictions.attack_probability %}
+                                    {{ "%.2f"|format(prob * 100) }}%
+                                    {% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="fas fa-tachometer-alt fa-3x text-primary mb-3"></i>
+                                <h4 class="text-primary">Traffic Throughput Prediction</h4>
+                                <h2 class="mb-3">{{ "%.2f"|format(predictions.throughput) }} Mbps</h2>
+                                <p class="text-muted">Network throughput estimate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Batch Prediction Results -->
+        {% if batch_predictions is defined and batch_predictions is not none %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    Batch Prediction Results - {{ selected_model }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Congestion Type Prediction</th>
+                                <th>Traffic Throughput Prediction (Mbps)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for index, row in batch_predictions.iterrows() %}
+                            <tr>
+                                <td>{{ index + 1 }}</td>
+                                <td>
+                                    <span class="badge bg-danger">{{ row['Attack_Type_Prediction'] }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">{{ "%.2f"|format(row['Throughput_Prediction']) }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if batch_predictions|length > 10 %}
+                <div class="alert alert-info">
+                    <strong>Note:</strong> Showing first 10 results. 
+                    Total predictions: {{ batch_predictions|length }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Sample Input Guide -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Sample Input Guide
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    Use these sample values to test the prediction system:
+                </p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">IoT Network Slice</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Slice Bandwidth:</strong> 1457 Mbps</li>
+                            <li><strong>Latency:</strong> 16 ms</li>
+                            <li><strong>Packet Loss Rate:</strong> 0.123</li>
+                            <li><strong>Data Rate:</strong> 1135 Mbps</li>
+                            <li><strong>Traffic Load:</strong> 1 (Medium)</li>
+                            <li><strong>Signal Strength:</strong> 2 (Weak)</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">Ultra-High-Speed Slice</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Slice Bandwidth:</strong> 1670 Mbps</li>
+                            <li><strong>Latency:</strong> 16 ms</li>
+                            <li><strong>Packet Loss Rate:</strong> 0.013</li>
+                            <li><strong>Data Rate:</strong> 1203 Mbps</li>
+                            <li><strong>Traffic Load:</strong> 1 (Medium)</li>
+                            <li><strong>Signal Strength:</strong> 2 (Weak)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <strong>Note:</strong> Categorical values should be encoded as numbers. 
+                    Refer to your training data encoding for proper values.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modelSelect = document.getElementById('modelSelect');
+    const hiddenModelSelect = document.getElementById('hiddenModelSelect');
+    const hiddenModelSelectBatch = document.getElementById('hiddenModelSelectBatch');
+    const singleRadio = document.getElementById('singlePrediction');
+    const batchRadio = document.getElementById('batchPrediction');
+    const singleForm = document.getElementById('singlePredictionForm');
+    const batchForm = document.getElementById('batchPredictionForm');
+
+    // Update hidden inputs when model selection changes
+    modelSelect.addEventListener('change', function() {
+        hiddenModelSelect.value = this.value;
+        hiddenModelSelectBatch.value = this.value;
+    });
+
+    // Set initial values
+    hiddenModelSelect.value = modelSelect.value;
+    hiddenModelSelectBatch.value = modelSelect.value;
+
+    // Toggle between single and batch prediction forms
+    function toggleForms() {
+        if (singleRadio.checked) {
+            singleForm.style.display = 'block';
+            batchForm.style.display = 'none';
+        } else {
+            singleForm.style.display = 'none';
+            batchForm.style.display = 'block';
+        }
+    }
+
+    singleRadio.addEventListener('change', toggleForms);
+    batchRadio.addEventListener('change', toggleForms);
+
+    // Initial toggle
+    toggleForms();
+});
+</script>
+{% endblock %}

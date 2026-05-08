@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}
+Traffic Control Performance – SDN MARL Framework
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-primary">
+                <i class="fas fa-project-diagram me-2"></i>
+                Traffic Control Performance
+            </h2>
+            <span class="badge bg-info fs-6">
+                SDN Throughput & Delay Prediction
+            </span>
+        </div>
+
+        {% if results %}
+        <!-- Performance Metrics Summary -->
+        <div class="row mb-4">
+            {% for model_name, result in results.items() %}
+            <div class="col-lg-4 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header text-white text-center"
+                         style="background: linear-gradient(45deg, #198754, #20c997);">
+                        <h5 class="mb-0">{{ model_name }}</h5>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row text-center">
+
+                            <div class="col-6 mb-3">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-0">
+                                        {{ "%.3f"|format(result.metrics.mae) }}
+                                    </h4>
+                                    <small class="text-muted">MAE (Latency Error)</small>
+                                </div>
+                            </div>
+
+                            <div class="col-6 mb-3">
+                                <h4 class="text-success mb-0">
+                                    {{ "%.3f"|format(result.metrics.rmse) }}
+                                </h4>
+                                <small class="text-muted">RMSE (Throughput Error)</small>
+                            </div>
+
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="text-warning mb-0">
+                                        {{ "%.3f"|format(result.metrics.mse) }}
+                                    </h4>
+                                    <small class="text-muted">MSE</small>
+                                </div>
+                            </div>
+
+                            <div class="col-6">
+                                <h4 class="text-info mb-0">
+                                    {{ "%.3f"|format(result.metrics.r2_score) }}
+                                </h4>
+                                <small class="text-muted">R² (Control Accuracy)</small>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Detailed Results -->
+        {% for model_name, result in results.items() %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-sliders-h me-2"></i>
+                    {{ model_name }} – Traffic Control Analysis
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+
+                    <!-- Scatter Plot -->
+                    <div class="col-lg-8 mb-3">
+                        <h6 class="text-muted mb-3">
+                            Actual vs Predicted Traffic Metrics
+                        </h6>
+                        <div class="text-center">
+                            <img src="data:image/png;base64,{{ result.scatter_plot }}"
+                                 class="img-fluid border"
+                                 alt="{{ model_name }} Traffic Prediction Plot">
+                        </div>
+                    </div>
+
+                    <!-- Metrics Interpretation -->
+                    <div class="col-lg-4 mb-3">
+                        <h6 class="text-muted mb-3">Control Performance Metrics</h6>
+                        <div class="card">
+                            <div class="card-body">
+
+                                <div class="mb-3">
+                                    <strong>Mean Absolute Error (MAE)</strong>
+                                    <div class="progress mt-1">
+                                        <div class="progress-bar bg-primary"
+                                             style="width: {{ ((1 - result.metrics.mae / 1000) * 100) | round }}%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ "%.4f"|format(result.metrics.mae) }}</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <strong>Root Mean Square Error (RMSE)</strong>
+                                    <div class="progress mt-1">
+                                        <div class="progress-bar bg-success"
+                                             style="width: {{ ((1 - result.metrics.rmse / 1000) * 100) | round }}%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ "%.4f"|format(result.metrics.rmse) }}</small>
+                                </div>
+
+                                <div class="mb-3">
+                                    <strong>R² Score</strong>
+                                    <div class="progress mt-1">
+                                        <div class="progress-bar bg-info"
+                                             style="width: {{ (result.metrics.r2_score * 100) | round }}%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">{{ "%.4f"|format(result.metrics.r2_score) }}</small>
+                                </div>
+
+                                <div class="alert alert-light">
+                                    <small>
+                                        <strong>Interpretation:</strong><br>
+                                        {% if result.metrics.r2_score > 0.8 %}
+                                        <span class="text-success">Highly effective traffic control</span>
+                                        {% elif result.metrics.r2_score > 0.6 %}
+                                        <span class="text-warning">Moderately effective control</span>
+                                        {% else %}
+                                        <span class="text-danger">Inefficient control</span>
+                                        {% endif %}
+                                        – Explains {{ "%.1f"|format(result.metrics.r2_score * 100) }}% variance
+                                    </small>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Model Comparison -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-radar me-2"></i>
+                    Traffic Control Model Comparison
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <canvas id="regressionChart" height="150"></canvas>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- No Results -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h4 class="text-muted">No Traffic Control Results Available</h4>
+                <p class="text-muted">
+                    Please train traffic prediction models to evaluate control performance.
+                </p>
+                <a href="{{ url_for('eda') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Go to Traffic Analysis
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

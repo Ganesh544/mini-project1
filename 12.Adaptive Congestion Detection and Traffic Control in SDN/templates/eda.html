@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}EDA - Network Security Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-primary">
+                <i class="fas fa-chart-bar me-2"></i>
+                Exploratory Data Analysis
+            </h2>
+            {% if dataset_shape %}
+            <span class="badge bg-info fs-6">
+                Dataset: {{ dataset_shape[0] }} × {{ dataset_shape[1] }}
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- EDA Plots -->
+        {% if plots %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Data Visualization
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <img src="data:image/png;base64,{{ plots.eda_combined }}" 
+                         class="img-fluid border" alt="EDA Plots">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Model Training Section -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    Train Machine Learning Models
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    Select the machine learning algorithms you want to train for both 
+                    classification (Attack Type detection) and regression (Throughput prediction).
+                </p>
+                
+                <form action="{{ url_for('train_models') }}" method="post">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-vector-square fa-2x text-primary mb-3"></i>
+                                    <h6 class="card-title">Support Vector Machine</h6>
+                                    <p class="card-text text-muted small">
+                                        Robust algorithm for high-dimensional data with RBF kernel
+                                    </p>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               value="SVM" id="svm" name="models">
+                                        <label class="form-check-label" for="svm">
+                                            Train SVM Models
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-project-diagram fa-2x text-success mb-3"></i>
+                                    <h6 class="card-title">K-Nearest Neighbors</h6>
+                                    <p class="card-text text-muted small">
+                                        Instance-based learning with k=5 neighbors
+                                    </p>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               value="KNN" id="knn" name="models">
+                                        <label class="form-check-label" for="knn">
+                                            Train KNN Models
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-tree fa-2x text-warning mb-3"></i>
+                                    <h6 class="card-title">TaoTree + SMOTE</h6>
+                                    <p class="card-text text-muted small">
+                                        Fast TAO tree classifier with SMOTE data balancing for multiclass problems
+                                    </p>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" 
+                                               value="TaoTree" id="taotree" name="models">
+                                        <label class="form-check-label" for="taotree">
+                                            Train TaoTree Models
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-play me-2"></i>
+                            Train Selected Models
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="alert alert-info mt-4">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-info-circle me-2"></i>Model Persistence
+                    </h6>
+                    <p class="mb-0">
+                        Models are automatically saved to the <code>models/</code> folder. 
+                        If trained models already exist, they will be loaded instead of retraining.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add some interactivity to model selection cards
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    card.classList.add('border-primary');
+                } else {
+                    card.classList.remove('border-primary');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

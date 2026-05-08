@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}
+Congestion Detection Performance - SDN MARL Framework
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-primary">
+                <i class="fas fa-traffic-light me-2"></i>
+                Congestion Detection Performance
+            </h2>
+            <span class="badge bg-success fs-6">
+                SDN Traffic State Classification
+            </span>
+        </div>
+
+        {% if results %}
+        <!-- Performance Metrics Summary -->
+        <div class="row mb-4">
+            {% for model_name, result in results.items() %}
+            <div class="col-lg-4 mb-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header text-white text-center"
+                         style="background: linear-gradient(45deg, #0d6efd, #198754);">
+                        <h5 class="mb-0">{{ model_name }}</h5>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row text-center">
+
+                            <div class="col-6 mb-3">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-0">
+                                        {{ "%.1f"|format(result.metrics.accuracy) }}%
+                                    </h4>
+                                    <small class="text-muted">Detection Accuracy</small>
+                                </div>
+                            </div>
+
+                            <div class="col-6 mb-3">
+                                <h4 class="text-success mb-0">
+                                    {{ "%.1f"|format(result.metrics.precision) }}%
+                                </h4>
+                                <small class="text-muted">Precision</small>
+                            </div>
+
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="text-warning mb-0">
+                                        {{ "%.1f"|format(result.metrics.recall) }}%
+                                    </h4>
+                                    <small class="text-muted">Recall</small>
+                                </div>
+                            </div>
+
+                            <div class="col-6">
+                                <h4 class="text-info mb-0">
+                                    {{ "%.1f"|format(result.metrics.f1_score) }}%
+                                </h4>
+                                <small class="text-muted">F1-Score</small>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Detailed Results -->
+        {% for model_name, result in results.items() %}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">
+                    <i class="fas fa-project-diagram me-2"></i>
+                    {{ model_name }} – Traffic State Analysis
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+
+                    <!-- Confusion Matrix -->
+                    <div class="col-lg-6 mb-3">
+                        <h6 class="text-muted mb-3">
+                            Congestion State Confusion Matrix
+                        </h6>
+                        <div class="text-center">
+                            <img src="data:image/png;base64,{{ result.confusion_plot }}"
+                                 class="img-fluid border"
+                                 alt="{{ model_name }} Confusion Matrix">
+                        </div>
+                    </div>
+
+                    <!-- Classification Report -->
+                    <div class="col-lg-6 mb-3">
+                        <h6 class="text-muted mb-3">
+                            Traffic Classification Report
+                        </h6>
+                        <div class="bg-light p-3 rounded">
+                            <pre class="mb-0 small">
+{{ result.metrics.classification_report }}
+                            </pre>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Model Comparison Chart -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Congestion Detection Model Comparison
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <canvas id="comparisonChart" height="150"></canvas>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- No Results -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                <h4 class="text-muted">No Congestion Detection Results Available</h4>
+                <p class="text-muted">
+                    Please train congestion detection models to view performance metrics.
+                </p>
+                <a href="{{ url_for('eda') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Go to Traffic Analysis
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if results %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const modelNames = {{ results.keys() | list | tojson }};
+    const accuracyData = [{% for _, r in results.items() %}{{ r.metrics.accuracy }},{% endfor %}];
+    const precisionData = [{% for _, r in results.items() %}{{ r.metrics.precision }},{% endfor %}];
+    const recallData = [{% for _, r in results.items() %}{{ r.metrics.recall }},{% endfor %}];
+    const f1Data = [{% for _, r in results.items() %}{{ r.metrics.f1_score }},{% endfor %}];
+
+    new Chart(document.getElementById('comparisonChart'), {
+        type: 'bar',
+        data: {
+            labels: modelNames,
+            datasets: [
+                { label: 'Accuracy (%)', data: accuracyData },
+                { label: 'Precision (%)', data: precisionData },
+                { label: 'Recall (%)', data: recallData },
+                { label: 'F1-Score (%)', data: f1Data }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: v => v + '%'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'SDN Congestion Detection Performance Comparison'
+                },
+                legend: { position: 'top' }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
